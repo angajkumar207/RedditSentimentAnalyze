@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Raiddy</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      background: #f4f4f4;
+    }
+    header {
+      background: #ff4500;
+      color: white;
+      padding: 15px 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    header img {
+      height: 30px;
+      margin-right: 10px;
+    }
+    .container {
+      max-width: 800px;
+      margin: 20px auto;
+      padding: 0 20px;
+    }
+    .hidden {
+      display: none;
+    }
+    input[type="text"], input[type="email"], input[type="password"] {
+      padding: 10px;
+      width: 100%;
+      margin: 5px 0;
+    }
+    button {
+      padding: 10px 16px;
+      background: #ff4500;
+      color: white;
+      border: none;
+      cursor: pointer;
+      margin-top: 10px;
+    }
+    .card {
+      background: white;
+      padding: 15px;
+      border-radius: 8px;
+      margin-bottom: 15px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    }
+    .card h3 {
+      margin: 0;
+      display: inline-block;
+    }
+    .vote {
+      float: right;
+    }
+    .vote button {
+      background: #eee;
+      color: #333;
+      margin-left: 5px;
+    }
+    nav button {
+      margin-left: 10px;
+      background: white;
+      color: #ff4500;
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div style="display: flex; align-items: center;">
+      <img src="https://www.redditstatic.com/desktop2x/img/favicon/apple-icon-180x180.png" alt="Reddit Logo" />
+      <strong>Raiddy</strong>
+    </div>
+    <nav>
+      <button onclick="showPage('profilePage')">Profile</button>
+      <button onclick="logout()">Logout</button>
+    </nav>
+  </header>
+
+  <div class="container">
+    <!-- Login / Signup -->
+    <div id="authPage">
+      <h2>Login or Sign Up</h2>
+      <input type="email" id="authEmail" placeholder="Email" />
+      <input type="text" id="authName" placeholder="Name (only for sign up)" />
+      <input type="password" id="authPassword" placeholder="Password" />
+      <button onclick="login()">Login</button>
+      <button onclick="signup()">Sign Up</button>
+    </div>
+
+    <!-- Main App -->
+    <div id="mainPage" class="hidden">
+      <h2>Add Your Favorite Language</h2>
+      <input type="text" id="langInput" placeholder="e.g. Python" />
+      <button onclick="addLanguage()">Submit</button>
+      <div id="langCards"></div>
+    </div>
+
+    <!-- Profile -->
+    <div id="profilePage" class="hidden">
+      <h2>Your Profile</h2>
+      <p><strong>Name:</strong> <span id="profileName"></span></p>
+      <p><strong>Email:</strong> <span id="profileEmail"></span></p>
+      <p><strong>Total Languages Saved:</strong> <span id="profileCount"></span></p>
+    </div>
+  </div>
+
+  <script>
+    let db = JSON.parse(localStorage.getItem("users")) || {};
+    let currentUser = localStorage.getItem("currentUser") || null;
+
+    const authPage = document.getElementById("authPage");
+    const mainPage = document.getElementById("mainPage");
+    const profilePage = document.getElementById("profilePage");
+
+    function showPage(page) {
+      authPage.classList.add("hidden");
+      mainPage.classList.add("hidden");
+      profilePage.classList.add("hidden");
+
+      if (page === "mainPage") mainPage.classList.remove("hidden");
+      if (page === "authPage") authPage.classList.remove("hidden");
+      if (page === "profilePage") {
+        profilePage.classList.remove("hidden");
+        showProfile();
+      }
+    }
+
+    function saveDB() {
+      localStorage.setItem("users", JSON.stringify(db));
+    }
+
+    function login() {
+      const email = document.getElementById("authEmail").value.trim().toLowerCase();
+      const password = document.getElementById("authPassword").value;
+
+      if (db[email] && db[email].password === password) {
+        currentUser = email;
+        localStorage.setItem("currentUser", currentUser);
+        showPage("mainPage");
+        renderLanguages();
+      } else {
+        alert("Invalid credentials.");
+      }
+    }
+
+    function signup() {
+      const email = document.getElementById("authEmail").value.trim().toLowerCase();
+      const name = document.getElementById("authName").value.trim();
+      const password = document.getElementById("authPassword").value;
+
+      if (!email || !password || !name) return alert("Fill all fields.");
+      if (db[email]) return alert("User already exists.");
+
+      db[email] = {
+        name,
+        password,
+        langs: []
+      };
+      saveDB();
+      alert("Account created. Now log in.");
+    }
+
+    function logout() {
+      currentUser = null;
+      localStorage.removeItem("currentUser");
+      showPage("authPage");
+    }
+
+    function addLanguage() {
+      const lang = document.getElementById("langInput").value.trim();
+      if (!lang) return;
+
+      const user = db[currentUser];
+      const exists = user.langs.find(l => l.name.toLowerCase() === lang.toLowerCase());
+      if (!exists) {
+        user.langs.push({ name: lang, votes: 0 });
+        saveDB();
+        renderLanguages();
+      }
+      document.getElementById("langInput").value = "";
+    }
+
+    function vote(langName, delta) {
+      const user = db[currentUser];
+      const lang = user.langs.find(l => l.name.toLowerCase() === langName.toLowerCase());
+      if (lang) {
+        lang.votes += delta;
+        saveDB();
+        renderLanguages();
+      }
+    }
+
+    function renderLanguages() {
+      const user = db[currentUser];
+      const container = document.getElementById("langCards");
+      container.innerHTML = "";
+
+      user.langs.sort((a, b) => b.votes - a.votes).forEach(lang => {
+        const card = document.createElement("div");
+        card.className = "card";
+        card.innerHTML = `
+          <div>
+            <h3>${lang.name}</h3>
+            <div class="vote">
+              <button onclick="vote('${lang.name}', 1)">⬆️</button>
+              ${lang.votes}
+              <button onclick="vote('${lang.name}', -1)">⬇️</button>
+            </div>
+          </div>
+        `;
+        container.appendChild(card);
+      });
+    }
+
+    function showProfile() {
+      const user = db[currentUser];
+      document.getElementById("profileName").textContent = user.name;
+      document.getElementById("profileEmail").textContent = currentUser;
+      document.getElementById("profileCount").textContent = user.langs.length;
+    }
+
+    if (currentUser && db[currentUser]) {
+      showPage("mainPage");
+      renderLanguages();
+    } else {
+      showPage("authPage");
+    }
+  </script>
+
+</body>
+</html>
