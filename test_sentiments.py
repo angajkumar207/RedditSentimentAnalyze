@@ -51,7 +51,7 @@ def test_analyze_route(client):
 def test_database_integration(client):
     with client.application.app_context():
         new_record = SentimentAnalysis(
-            topic= 'science', sentiment='POSTIVE', score = 0.5994,
+            topic= 'science', sentiment='POSSTIVE', score = 0.5994,
             title= " i go loyola maryland and doesn't know what to major",
             content = " i enjoy finance and tech. i was animing............"
 
