@@ -1,68 +1,77 @@
 import os
 import matplotlib
 import seaborn as sns
-from wordcloud import wordcloud
+from wordcloud import WordCloud
 import base64
 from io import BytesIO
 from collections import Counter
 import re
+
 matplotlib.use('Agg')
-import matplotlib.pyplot as pit
+import matplotlib.pyplot as plt
 
 def create_directory(path):
-    if not os.exists(path):
+    if not os.path.exists(path):
         os.makedirs(path)
 
 def generate_graphs(sentiment_results, topic):
-    sentiment = [result['sentiment']for result in sentiment_results]
+    # Extract sentiment labels and scores
+    sentiment = [result['sentiment'] for result in sentiment_results]
     scores = [result['score'] for result in sentiment_results]
 
+    # Setup image output directory
     image_dir = os.path.join('static', 'image')
     create_directory(image_dir)
 
     bar_chart_path = os.path.join(image_dir, 'sentiment_bar_chart.png')
-    word_chart_path = os.path.join(image_dir, 'word_cloud.pnge')
+    word_chart_path = os.path.join(image_dir, 'word_cloud.png')
 
-    pit.figure(figsize=(10,16))
-    ax = sns.barplot(x= sentiment, y=scores, palette='Coolwarm')
-    pit.title('Sentiment Scores for reddit Posts on "{topic}"',fontsize=16)
-    pit.xlabel('Sentiment', fontsize=12)
-    pit.ylabel('Score', fontsize=12)
-    pit.xticks(rotation=45, ha = "right")
-    pit.tight_layout()
+    # Generate sentiment bar chart
+    plt.figure(figsize=(10, 6))
+    ax = sns.barplot(x=sentiment, y=scores, palette='coolwarm')
+    plt.title(f'Sentiment Scores for Reddit Posts on "{topic}"', fontsize=16)
+    plt.xlabel('Sentiment', fontsize=12)
+    plt.ylabel('Score', fontsize=12)
+    plt.xticks(rotation=45, ha="right")
+    plt.tight_layout()
 
     for p in ax.patches:
-        ax.annotate(f'{p.get_height():.2f}',
-                    (p.get_x() + p.get_width()/2., p.get_hight()),
-                    ha = "center", va = "conter", fontsize=12, colore="black",
-                    xytext=(0,5), textcoords='offest points')
-        pit.grid(True, linestyle='--',alpha=0.7)
-        pit.savefig(bar_chart_path)
-        pit.close()
-    
-    # converting bar chart
-    bar_ing_64 = encode_image_to_base64(bar_chart_path)
-    text = ' '.join([result['content'] for result in sentiment_results])
+        height = p.get_height()
+        ax.annotate(f'{height:.2f}', 
+                    (p.get_x() + p.get_width() / 2., height),
+                    ha="center", va="bottom", fontsize=10,
+                    xytext=(0, 5), textcoords='offset points')
 
-    #clean the text 
-    text = re.sub(r'[A-Za-z\s]', '', text.lower())
+    plt.grid(True, linestyle='--', alpha=0.7)
+    plt.savefig(bar_chart_path)
+    plt.close()
 
-    # token size
+    # Convert bar chart to base64
+    bar_img_b64 = encode_image_to_base64(bar_chart_path)
+
+    # Prepare text for word cloud
+    text = ' '.join([result.get('content', '') for result in sentiment_results])
+    text = re.sub(r'[^a-z\s]', '', text.lower())
     words = text.split()
     word_counts = Counter(words)
 
-    # generative the word cloud
-    word_counts = wordcloud(width=800, hight=400, background_color='white', max_words=200, colormap='viridis'.genrate_from_frequencies(word_counts))
-    # save wordcloud as png file
+    # If word_counts is empty, skip word cloud
+    if word_counts:
+        wc = WordCloud(width=800, height=400, background_color='white',
+                       max_words=200, colormap='viridis')
+        wc.generate_from_frequencies(word_counts)
+        wc.to_file(word_chart_path)
+        word_cloud_b64 = encode_image_to_base64(word_chart_path)
+    else:
+        word_cloud_b64 = None  # or ''
 
-    wordcloud.to_file(word_chart_path)    
-
-    # convert the word ing to bassed
-    word_cloud_b64 = encode_image_to_base64(word_chart_path)
-    return bar_ing_64, word_cloud_b64
+    return bar_img_b64, word_cloud_b64
 
 def encode_image_to_base64(image_path):
-    with open(image_path, "rb") as img_file:
-        img_64 = base64.b64decode(img_file.read()).decode('utf-8')
-    return img_64  
-    
+    try:
+        with open(image_path, "rb") as img_file:
+            img_64 = base64.b64encode(img_file.read()).decode('utf-8')
+        return img_64
+    except FileNotFoundError:
+        print(f"⚠️ File not found: {image_path}")
+        return ''

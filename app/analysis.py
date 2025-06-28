@@ -1,6 +1,6 @@
 import os
 import nltk
-nltk.data.path.append(os.path.join(os.getenv('HOME') or os.getenv('USERPROFILE'), 'nltk_data'))
+nltk.data.path.append(os.path.join(os.getcwd(),'nltk_data'))
 from nltk.sentiment.vader import SentimentIntensityAnalyzer
 
 sia = SentimentIntensityAnalyzer()
@@ -11,7 +11,7 @@ def analyze_sentiment(posts):
         # get sentiment scores
         sentiment_score = sia.polarity_scores(post['content'])['compound']
         # classific sentiment based on the compounds score
-        sentiment = 'POSATIVE' if sentiment_score >= 0 else 'NEGATIVE'
+        sentiment = 'POSITIVE' if sentiment_score >= 0 else 'NEGATIVE'
 
         # append results:
         results.append({

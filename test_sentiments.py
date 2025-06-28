@@ -2,8 +2,7 @@ from msvcrt import getch
 import pytest
 from flask import Flask
 from unittest.mock import patch
-from requests import patch
-from app.models import create_app, db
+from app import create_app, db
 from app.analysis import analyze_sentiment
 from app.fetch_reddit_data import fetch_reddit_data
 from app.models import SentimentAnalysis
@@ -39,7 +38,7 @@ def test_analyze_sentiment():
     assert results[1]['sentiment'] == 'POSITIVE'
 
 def test_analyze_route(client):
-    with patch('app. fetch_raddit_data. fetch_raddit_data') as mock_fetch:
+    with patch('app.fetch_reddit_data.fetch_reddit_data') as mock_fetch:
         mock_fetch.return_value = [
         {
             "title": " i go to loyola maryland and dont know what to major",
@@ -51,7 +50,7 @@ def test_analyze_route(client):
 def test_database_integration(client):
     with client.application.app_context():
         new_record = SentimentAnalysis(
-            topic= 'science', sentiment='POSSTIVE', score = 0.5994,
+            topic= 'science', sentiment='POSTIVE', score = 0.5994,
             title= " i go loyola maryland and doesn't know what to major",
             content = " i enjoy finance and tech. i was animing............"
 
@@ -60,12 +59,12 @@ def test_database_integration(client):
         db.session.commit()
         record = SentimentAnalysis.query.filter_by(topic='science').first()
         assert record is not None
-        assert record.sentiment == 'POSSTIVE'
+        assert record.sentiment == 'POSTIVE'
 
 def test_invalid_input(client):
     responce = client.post("/api/sentiment/analyze", data = {})
     assert responce.status_code == 400
-    assert 'Topic is required ' in responce.data.decode('utf-8')
+    assert 'Topic is required' in responce.data.decode('utf-8')
 
 
 

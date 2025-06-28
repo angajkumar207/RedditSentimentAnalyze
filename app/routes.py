@@ -43,7 +43,7 @@ def analyze_sentiment_route():
 
             ))
         db.session.commit()
-    bar_chart_64, word_cloud_b64 = generate_graphs(sentiment_results)
+    bar_chart_64, word_cloud_b64 = generate_graphs(sentiment_results, topic)
     return render_template(
         'index.html', topic=topic, sentiment_results=sentiment_results, bar_chart_64=bar_chart_64, word_cloud_b64=word_cloud_b64 
     )
